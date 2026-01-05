@@ -27,7 +27,7 @@ class ANPR:
         """Initializes the ANPR system."""
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model = YOLO(model_path)
-        self.reader = easyocr.Reader(["en"], gpu=torch.cuda.is_available())
+        self.reader = easyocr.Reader(['en', 'ch_sim'], gpu=torch.cuda.is_available())
 
     def detect_plates(self, im0: np.ndarray):
         """Detects license plates in a image."""
@@ -66,26 +66,23 @@ class ANPR:
                 break
 
             boxes = self.detect_plates(im0)
-            ann = Annotator(im0, line_width=4)
+            ann = Annotator(im0, line_width=4, pil=True)
+
             for bbox in boxes:
                 text = self.extract_text(im0, bbox)
                 ann.box_label(bbox, label=text, color=colors(17, True))
 
+            result = ann.result()   # ← 关键
+
             if display:
-                cv2.imshow("ANPR (Press 'q' to exit)", im0)
+                cv2.imshow("ANPR (Press 'q' to exit)", result)
             if writer:
-                writer.write(im0)
+                writer.write(result)
 
             if cv2.waitKey(1) & 0xFF == ord("q"):
                 break
 
-        cap.release()
-        if writer:
-            writer.release()
-        cv2.destroyAllWindows()
-
-
 if __name__ == "__main__":
 
     anpr = ANPR(model_path="anpr_best.pt")  # Use trained YOLO license plate model
-    anpr.infer_video(source="videos/acar.mp4", output_path="anpr_output.mp4", display=True)
+    anpr.infer_video(source="videos/car.mp4", output_path="anpr_output.mp4", display=True)
